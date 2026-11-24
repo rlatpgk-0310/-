@@ -1,6 +1,13 @@
 import pandas as pd
 import streamlit as st
 
+# 페이지 기본 설정
+st.set_page_config(
+    page_title="만나면 피해야 할 야생동물 가이드북",
+    page_icon="🐾",
+    layout="centered"
+)
+
 # 야생동물 데이터 리스트 (이름, 위험도, 이유, 기본점수, 대처메시지)
 animal_list = [
     ["고양이", "별 한 개", "발톱에 긁힐 수 있으나 먼저 위협하지 않으면 안전합니다.", 10, "길고양이는 먼저 건드리지 말고 조용히 지나가세요."],
@@ -33,6 +40,7 @@ def analyze_animal(animal_name, age):
 
 # 앱 UI 구성
 st.title("🐾 만나면 피해야 할 야생동물 가이드북")
+st.caption("10604 김세하 | 야생동물 마주침 대처 및 위험도 분석 서비스")
 
 animal_names = [item[0] for item in animal_list]
 selected_animal = st.selectbox("(1) 동물 선택 :", animal_names, index=3)
