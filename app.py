@@ -8,8 +8,8 @@ st.set_page_config(
     layout="centered",
 )
 
-# 2. 야생동물 데이터베이스 (리스트 구조)
-# 형식: [동물이름, 위험도(별점), 위험 이유, 기본 위험 점수, 대처 메시지, 긴급 연락처]
+# 2. 야생동물 데이터 리스트
+# 구조: [동물이름, 위험도(별점), 위험 이유, 기본 점수, 대처 메시지, 긴급 연락처]
 ANIMAL_DATA = [
     [
         "고양이",
@@ -17,7 +17,7 @@ ANIMAL_DATA = [
         "발톱에 긁히거나 물릴 수 있으나, 먼저 위협하지 않으면 공격하지 않습니다.",
         10,
         "길고양이는 먼저 건드리지 말고 조용히 지나가세요.",
-        "120 (다산콜센터 / 지자체 동물보호센터)",
+        "120 (지자체 민원콜센터)",
     ],
     [
         "강아지(들개)",
@@ -54,17 +54,13 @@ ANIMAL_DATA = [
 ]
 
 
-# 3. 위험도 분석 함수 (def)
+# 3. 위험도 분석 함수
 def analyze_wildlife_risk(animal_name: str, age: int) -> tuple:
-    """
-    선택한 야생동물 이름과 사용자 나이를 입력받아
-    최종 위험도 점수, 대처 행동 요령, 신고처를 반환합니다.
-    """
     base_score = 0
     action_msg = ""
     emergency_contact = ""
 
-    # 반복문(for)을 통해 리스트에서 해당 동물 데이터 탐색
+    # 반복문으로 선택된 동물 데이터 조회
     for animal in ANIMAL_DATA:
         if animal[0] == animal_name:
             base_score = animal[3]
@@ -72,50 +68,79 @@ def analyze_wildlife_risk(animal_name: str, age: int) -> tuple:
             emergency_contact = animal[5]
             break
 
-    # 조건문(if-elif-else)을 통한 연령별 대처 능력 가중치 부여
+    # 조건문으로 사용자 나이에 따른 위험도 가중치 계산
     if age < 14 or age >= 65:
-        age_weight = 15  # 어린이 및 노약자: 도주·방어 능력이 낮아 위험도 가산
+        age_weight = 15
         age_group = "어린이/노약자"
     elif 14 <= age <= 19:
-        age_weight = 3   # 청소년: 성인 대비 소폭 가산 (예: 곰 80 + 3 = 83점)
+        age_weight = 3
         age_group = "청소년"
     else:
-        age_weight = 0   # 성인: 기본 위험도 적용
+        age_weight = 0
         age_group = "성인"
 
-    # 최종 점수는 최대 100점으로 제한
     final_score = min(100, base_score + age_weight)
     return final_score, age_weight, age_group, action_msg, emergency_contact
 
 
-# 4. 웹 화면 UI 구성
+# 4. 화면 UI 구성
 def main():
     st.title("🐾 만나면 피해야 할 야생동물 가이드북")
-    st.markdown("**개발자:** 10604 김세하 | **목적:** 야생동물 조우 시 맞춤형 위험도 및 대처 요령 안내")
+    st.caption("야생동물 조우 시 사용자 연령별 맞춤형 위험도 및 대처 요령 안내")
     st.divider()
 
     # 입력 영역
-    st.subheader("🔍 상황 입력")
-    col1, col2 = st.columns([1, 1])
-
+    col1, col2 = st.columns(2)
     with col1:
         animal_names = [item[0] for item in ANIMAL_DATA]
-        selected_animal = st.selectbox("(1) 마주친 동물 선택:", animal_names, index=3)
+        selected_animal = st.selectbox("(1) 동물 선택:", animal_names, index=3)
 
     with col2:
-        user_age = st.slider("(2) 사용자 나이 입력:", min_value=1, max_value=150, value=17)
+        user_age = st.slider("(2) 나이 입력:", min_value=1, max_value=150, value=17)
 
-    # 분석 실행 버튼
+    # 분석하기 버튼
     if st.button("분석하기", type="primary", use_container_width=True):
         score, weight, group, message, contact = analyze_wildlife_risk(selected_animal, user_age)
 
         st.divider()
         st.subheader("📊 분석 결과")
 
-        # (1) 텍스트 메시지 출력 (위험도 수준에 따라 경고창 색상 구분)
+        # (1) 대처 메시지 출력
         if score >= 70:
             st.error(f'🚨 **행동 요령:** "{message}"')
         elif score >= 40:
             st.warning(f'⚠️ **행동 요령:** "{message}"')
         else:
             st.success(f'✅ **행동 요령:** "{message}"')
+
+        # (2) 위험도 점수 및 긴급 연락처 출력
+        m_col1, m_col2 = st.columns(2)
+        with m_col1:
+            st.metric(
+                label=f"위험도 점수 ({user_age}세 / {group})",
+                value=f"{score}점",
+                delta=f"연령 가중치 +{weight}점" if weight > 0 else "기본 위험도",
+                delta_color="inverse",
+            )
+        with m_col2:
+            st.info(f"📞 **긴급 신고처**\n\n{contact}")
+
+        # (3) 테이블/표 출력
+        st.write("**📋 피해야 할 야생동물과 이유**")
+        table_rows = []
+        for item in ANIMAL_DATA:
+            if item[0] == selected_animal:
+                table_rows.append(
+                    {
+                        "야생동물 이름": item[0],
+                        "위험도": item[1],
+                        "이유": item[2],
+                    }
+                )
+
+        df = pd.DataFrame(table_rows)
+        st.table(df)
+
+
+if __name__ == "__main__":
+    main()
